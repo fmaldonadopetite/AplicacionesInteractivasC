@@ -24,8 +24,8 @@ typedef uint64_t u64;   //pointer
 
 static struct termios old_termios, new_termios;
 
-#define WIDTH 50
-#define HEIGHT 20
+#define WIDTH 70
+#define HEIGHT 30
 
 enum dir {
     NADA  = 0,
@@ -49,6 +49,7 @@ i32 mod_menos(i32 x, i32 y);
 
 
 int main(void){
+    srand((unsigned) time(NULL));
     configure_terminal();
     signal(SIGINT, signal_handler);
 
@@ -56,9 +57,9 @@ int main(void){
     for(i32 i=0; i<WIDTH*HEIGHT; i++){
         int fila = i/WIDTH;
         int columna = i%WIDTH;
-        if(columna==0 || columna==WIDTH-1){
+        if( columna==WIDTH-1){
             printf("|");
-        } else if(fila==0 || fila==HEIGHT-1){
+        } else if( fila==HEIGHT-1){
             printf("-");
         } else {
             printf(" ");
@@ -69,30 +70,35 @@ int main(void){
 
     }
 
-    u8 quit = 0;
-    int head = 1;
-    int tail = 0;
-    int serpiente[WIDTH*HEIGHT][2] = {0};
+    u8 end = 0;
+    int largo = 10;
     int direccion = RIGHT;
 
+    int head = 2;
+    int tail = 0;
+    int serpiente[WIDTH*HEIGHT][2] = {0};
     serpiente[head][0] = WIDTH/2;
     serpiente[head][1] = HEIGHT/2;
 
+    int manzana[2] = {0};
+    manzana[0] = rand() % WIDTH;
+    manzana[1] = rand() % HEIGHT;
+    printf("\x1B[%d;%dH", manzana[1], manzana[0]);
+    printf("m");
     struct timespec req = {};
     struct timespec rem = {};
-    while(!quit){
+    while(!end){
+        //dibujo
         printf("\x1B[%d;%dH", serpiente[head][1], serpiente[head][0]);
-        printf("x");
+        printf("o");
         printf("\x1B[%d;%dH", serpiente[tail][1], serpiente[tail][0]);
         printf(" ");
         head = mod_mas(head,1);
-        tail = mod_mas(head,1);
-        serpiente[tail][1] = serpiente[mod_menos(tail,1)][1];
-        serpiente[tail][0] = serpiente[mod_menos(tail,1)][0];
-
+        tail = mod_menos(head,largo);
         serpiente[head][1] = serpiente[mod_menos(head,1)][1];
         serpiente[head][0] = serpiente[mod_menos(head,1)][0];
 
+        //lectura de teclado y cambio de dirección
         int key = read_input();
         switch (key) {
             case UP:    if (direccion != DOWN)  direccion = key; break;
@@ -108,8 +114,26 @@ int main(void){
             case RIGHT: serpiente[head][0] = (serpiente[head][0] + 1 + WIDTH)% WIDTH; break;
         }
 
+        //lógica de juego
+        for (u16 i=1; i<largo; i++){
+            i32 cuerpo =  mod_menos(head, i);
+            if(serpiente[head][1] == serpiente[cuerpo][1] && serpiente[head][0] == serpiente[cuerpo][0]){
+                end =1;
+            }
+        }
+        if(serpiente[head][1] == manzana[1] && serpiente[head][0] == manzana[0]){
+            largo +=1;
+            manzana[0] = rand() % WIDTH;
+            manzana[1] = rand() % HEIGHT;
+            printf("\x1B[%d;%dH", manzana[1], manzana[0]);
+            printf("m");
+        }
+
+        printf("\x1B[%d;%dH", serpiente[head][1], serpiente[head][0]);
+        printf("x");
         //printf("\x1B[1;1H");
-        //printf("%d, %d\n", serpiente[head][1], serpiente[head][0]);
+        //printf("head: %d, %d, %d\n", head, serpiente[head][1], serpiente[head][0]);
+        //printf("tail: %d, %d, %d\n", tail,  serpiente[tail][1], serpiente[tail][0]);
         //printf("\n%d", head);
 
         fflush(stdout);
@@ -126,13 +150,10 @@ i32 mod_menos(i32 x, i32 y){
     return  (x - y + WIDTH*HEIGHT)%(WIDTH*HEIGHT);
 }
 
-
-
-
-
 void reset_terminal() {
     printf("\e[m"); // reset color changes
     printf("\e[?25h"); // show cursor
+    printf("\x1B[1;1H");
     fflush(stdout);
     tcsetattr(STDIN_FILENO, TCSANOW, &old_termios);
 }
