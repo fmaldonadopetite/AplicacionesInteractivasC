@@ -1,1 +1,13 @@
+ Para evitar el delay al mantener presionada una tecla en el terminal: xset r rate 220 40
+ el default es: 660 25.
+
+ ANSI Escape Codes:
+ printf(\x1B[38;2;R;G;Bm")  //FG Color
+ printf(\x1B[48;2;R;G;Bm")  //BG Color
+ printf(\x1B[Y;XH")         //Move cursor to X,Y - Upper left corner is (1,1)
+ printf(\x1B[2J")           //Clear Screen
+ printf(\x1B[?25l")         //Hide Cursor
+ printf(\x1B[?25h")         //Show Cursor
+ 
+
 
